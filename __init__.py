@@ -108,7 +108,58 @@ class UnityMecanim_Convert2Unity(bpy.types.Operator):
             # rename
             pb.name = newname
 
-        self.report({'INFO'}, 'Unity ready rig!')                
+        self.report({'INFO'}, 'Removed incompatible bones.')
+
+        # Merge vertex groups of deleted or deactivated bones into their original parents
+        for child in ob.children:
+            if child.type != 'MESH':
+                print('Skipped ' + child.name + ' (not a mesh)')
+                continue
+            
+            valid_child = False
+            for modifier in child.modifiers:
+                if modifier.type != 'ARMATURE': continue
+                if modifier.object == ob:
+                    valid_child = True
+                    break
+            
+            if valid_child == False:
+                print('Skipped ' + child.name + ' (no armature modifier or not relevant)')
+                continue
+            
+            transfer_list = [
+                ('DEF-forearm.L', 'DEF-forearm.L.001'),
+                ('DEF-upper_arm.L', 'DEF-upper_arm.L.001'),
+                ('DEF-forearm.R', 'DEF-forearm.R.001'),
+                ('DEF-upper_arm.R', 'DEF-upper_arm.R.001'),
+                ('DEF-thigh.L', 'DEF-thigh.L.001'),
+                ('DEF-shin.L', 'DEF-shin.L.001'),
+                ('DEF-thigh.R', 'DEF-thigh.R.001'),
+                ('DEF-shin.R', 'DEF-shin.R.001'),
+
+                ('DEF-spine', 'DEF-pelvis.L'),
+                ('DEF-spine', 'DEF-pelvis.R'),
+                ('DEF-spine.003', 'DEF-breast.L'),
+                ('DEF-spine.003', 'DEF-breast.R')
+            ]
+            
+            print('> Started on ' + child.name)
+            bpy.context.view_layer.objects.active = child
+            for dst, src in transfer_list:    
+                print('\t' + src + ' -> ' + dst)
+                vertex_weight_edit_mod = child.modifiers.new(name='tmp_vertex_weight_edit', type='VERTEX_WEIGHT_MIX')
+                vertex_weight_edit_mod.mix_set = 'ALL'
+                vertex_weight_edit_mod.mix_mode = 'ADD'
+                vertex_weight_edit_mod.vertex_group_a = dst
+                vertex_weight_edit_mod.vertex_group_b = src
+                
+                bpy.ops.object.modifier_apply(modifier='tmp_vertex_weight_edit')
+                
+            print('> Finished ' + child.name)
+
+        bpy.context.view_layer.objects.active = ob
+
+        self.report({'INFO'}, 'Merged vertex groups.')
 
         return{'FINISHED'}
 

@@ -1,6 +1,8 @@
 # RigifyToUnity
 Converts Rigify rig to Humanoid compatible  
 
+This fork attempts to salvage already weight mapped rigs by merging vertex groups of deleted/deactivated deform bones into active ones.
+
 **_Installation:_** 
 - Download this repo as zip archive
 - In Blender Open Edit tab -> Preferences... -> Add-ons -> Instal... -> choose the downloaded zip archive
@@ -11,7 +13,9 @@ Converts Rigify rig to Humanoid compatible
 2) Press "Generate Rig" from Rigify tab
 3) Make sure newly generated rig is selected (named just "rig")
 4) Press "Prepare rig for unity" from Rigify to Unity converter tab
-> :warning: Do it before weight painting as some deform bones will be removed
+> ~~:warning: Do it before weight painting as some deform bones will be removed~~
+
+> :warning: This operation can take a long time, depending on the amount of meshes and polygons the armature contains.
 5) Do something cool!
 6) p.s. Check "Only Deform Bones" when exporting to exclude unnecessary bones from fbx
 
@@ -19,4 +23,4 @@ Converts Rigify rig to Humanoid compatible
 This script basicaly follows this tutorial  
 https://docs.unity3d.com/560/Documentation/Manual/BlenderAndRigify.html
 
-Script inspired by legacy https://github.com/trynyty/Rigify_DeformBones  
+Script inspired by legacy https://github.com/trynyty/Rigify_DeformBones
