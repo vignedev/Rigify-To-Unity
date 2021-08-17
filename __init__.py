@@ -29,7 +29,7 @@ class UnityMecanim_Panel(bpy.types.Panel):
         
 class UnityMecanim_Convert2Unity(bpy.types.Operator):
     bl_idname = "rig4mec.convert2unity"
-    bl_label = "Prepare rig for unity"
+    bl_label = "Prepare rig for Unity"
     
     def execute(self, context):
         ob = bpy.context.object
