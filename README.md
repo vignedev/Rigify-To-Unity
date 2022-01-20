@@ -5,7 +5,7 @@ This fork attempts to salvage already weight mapped rigs by merging vertex group
 
 **_Installation:_** 
 - Download this repo as zip archive
-- In Blender Open Edit tab -> Preferences... -> Add-ons -> Instal... -> choose the downloaded zip archive
+- In Blender Open Edit tab -> Preferences... -> Add-ons -> Install... -> choose the downloaded zip archive
 - You can find the Addon under Rigging category, there should be "Rigify to Unity" addon
 
 **_Usage:_** 
