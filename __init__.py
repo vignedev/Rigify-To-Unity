@@ -147,6 +147,14 @@ class UnityMecanim_Convert2Unity(bpy.types.Operator):
             bpy.context.view_layer.objects.active = child
             for dst, src in transfer_list:    
                 print('\t' + src + ' -> ' + dst)
+
+                # check if src/dst vertex group exists
+                if (src in child.vertex_groups) and (dst not in child.vertex_groups):
+                    child.vertex_groups[src].name = dst
+                    pass
+                elif (src not in child.vertex_groups):
+                    continue
+
                 vertex_weight_edit_mod = child.modifiers.new(name='tmp_vertex_weight_edit', type='VERTEX_WEIGHT_MIX')
                 vertex_weight_edit_mod.mix_set = 'ALL'
                 vertex_weight_edit_mod.mix_mode = 'ADD'
