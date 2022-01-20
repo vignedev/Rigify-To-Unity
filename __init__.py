@@ -32,84 +32,83 @@ class UnityMecanim_Convert2Unity(bpy.types.Operator):
     bl_label = "Prepare rig for Unity"
     
     def execute(self, context):
+        # expecting ob to the armature
         ob = bpy.context.object
-        
-        bpy.ops.object.mode_set(mode='OBJECT')
 
-        if 'DEF-breast.L' in ob.data.bones :
-            ob.data.bones['DEF-breast.L'].use_deform = False
-        if 'DEF-breast.R' in ob.data.bones :
-            ob.data.bones['DEF-breast.R'].use_deform = False
-
-        if 'DEF-pelvis.L' in ob.data.bones :
-            ob.data.bones['DEF-pelvis.L'].use_deform = False
-        if 'DEF-pelvis.R' in ob.data.bones :
-            ob.data.bones['DEF-pelvis.R'].use_deform = False
-
+        # enter edit mode to access bone manipulation
         bpy.ops.object.mode_set(mode='EDIT')
         
-        ob.data.edit_bones['DEF-shoulder.L'].parent = ob.data.edit_bones['DEF-spine.003']
-        ob.data.edit_bones['DEF-shoulder.R'].parent = ob.data.edit_bones['DEF-spine.003']
-        
-        ob.data.edit_bones['DEF-upper_arm.L'].parent = ob.data.edit_bones['DEF-shoulder.L']
-        ob.data.edit_bones['DEF-upper_arm.R'].parent = ob.data.edit_bones['DEF-shoulder.R']
-        
-        ob.data.edit_bones['DEF-thigh.L'].parent = ob.data.edit_bones['DEF-spine']
-        ob.data.edit_bones['DEF-thigh.R'].parent = ob.data.edit_bones['DEF-spine']
+        # reparent bones to their proper bones
+        # tuple: (bone, new_parent, new_tail)
+        bones_relationships = [
+            ('DEF-shoulder.L' , 'DEF-spine.003'  , None),
+            ('DEF-shoulder.R' , 'DEF-spine.003'  , None),
+            ('DEF-upper_arm.L', 'DEF-shoulder.L' , 'DEF-upper_arm.L.001'),
+            ('DEF-upper_arm.R', 'DEF-shoulder.R' , 'DEF-upper_arm.R.001'),
+            ('DEF-thigh.L'    , 'DEF-spine'      , 'DEF-thigh.L.001'),
+            ('DEF-thigh.R'    , 'DEF-spine'      , 'DEF-thigh.R.001'),
+            ('DEF-forearm.L'  , 'DEF-upper_arm.L', 'DEF-forearm.L.001'),
+            ('DEF-forearm.R'  , 'DEF-upper_arm.R', 'DEF-forearm.R.001'),
+            ('DEF-hand.L'     , 'DEF-forearm.L'  , None),
+            ('DEF-hand.R'     , 'DEF-forearm.R'  , None),
+            ('DEF-shin.L'     , 'DEF-thigh.L'    , 'DEF-shin.L.001'),
+            ('DEF-shin.R'     , 'DEF-thigh.R'    , 'DEF-shin.R.001'),
+            ('DEF-foot.L'     , 'DEF-shin.L'     , None),
+            ('DEF-foot.R'     , 'DEF-shin.R'     , None)
+        ]
+        for bone, parent, new_tail in bones_relationships:
+            if bone not in ob.data.edit_bones: continue
+            if parent not in ob.data.edit_bones: continue
+            
+            ob.data.edit_bones[bone].parent = ob.data.edit_bones[parent]
+            if new_tail and new_tail in ob.data.edit_bones:
+                ob.data.edit_bones[bone].tail = ob.data.edit_bones[new_tail].tail
 
-        ob.data.edit_bones['DEF-upper_arm.L'].tail = ob.data.edit_bones['DEF-upper_arm.L.001'].tail
-        ob.data.edit_bones['DEF-forearm.L'].tail = ob.data.edit_bones['DEF-forearm.L.001'].tail
-        ob.data.edit_bones['DEF-forearm.L'].parent = ob.data.edit_bones['DEF-upper_arm.L.001'].parent
-        ob.data.edit_bones['DEF-hand.L'].parent = ob.data.edit_bones['DEF-forearm.L.001'].parent
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-upper_arm.L.001'])
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-forearm.L.001'])
+        # relinking bones that are linked to certain bones (spine, head, thighs, upper_arm)
+        # tuple: (bone_to_scan, new_parent)
+        bones_relink = [
+            ('ORG-spine'      , 'DEF-spine'      ),
+            ('ORG-spine.006'  , 'DEF-spine.006'  ),
+            ('ORG-thigh.L'    , 'DEF-thigh.L'    ),
+            ('ORG-thigh.R'    , 'DEF-thigh.R'    ),
+            ('ORG-upper_arm.L', 'DEF-upper_arm.L'),
+            ('ORG-upper_arm.R', 'DEF-upper_arm.R')
+        ]
+        for bone, parent in bones_relink:
+            if bone not in ob.data.edit_bones: continue
+            if parent not in ob.data.edit_bones: continue
+            for child in ob.data.edit_bones[bone].children:
+                child.parent = ob.data.edit_bones[parent]
 
-        ob.data.edit_bones['DEF-upper_arm.R'].tail = ob.data.edit_bones['DEF-upper_arm.R.001'].tail
-        ob.data.edit_bones['DEF-forearm.R'].tail = ob.data.edit_bones['DEF-forearm.R.001'].tail
-        ob.data.edit_bones['DEF-forearm.R'].parent = ob.data.edit_bones['DEF-upper_arm.R.001'].parent
-        ob.data.edit_bones['DEF-hand.R'].parent = ob.data.edit_bones['DEF-forearm.R.001'].parent
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-upper_arm.R.001'])
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-forearm.R.001'])
+        # remove unnecessary bones or to-be-merged bones
+        bones_to_remove = [
+            'DEF-breast.L', 'DEF-breast.R',
+            'DEF-pelvis.L', 'DEF-pelvis.R',
+            'DEF-upper_arm.L.001', 'DEF-upper_arm.R.001',
+            'DEF-forearm.L.001', 'DEF-forearm.R.001',
+            'DEF-thigh.L.001', 'DEF-thigh.R.001',
+            'DEF-shin.L.001', 'DEF-shin.R.001'
+        ]
+        for bone in bones_to_remove:
+            if bone not in ob.data.edit_bones: continue
+            ob.data.edit_bones.remove(ob.data.edit_bones[bone])
 
-        ob.data.edit_bones['DEF-thigh.L'].tail = ob.data.edit_bones['DEF-thigh.L.001'].tail
-        ob.data.edit_bones['DEF-shin.L'].tail = ob.data.edit_bones['DEF-shin.L.001'].tail
-        ob.data.edit_bones['DEF-shin.L'].parent = ob.data.edit_bones['DEF-thigh.L.001'].parent
-        ob.data.edit_bones['DEF-foot.L'].parent = ob.data.edit_bones['DEF-shin.L.001'].parent
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-thigh.L.001'])
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-shin.L.001'])
-
-        ob.data.edit_bones['DEF-thigh.R'].tail = ob.data.edit_bones['DEF-thigh.R.001'].tail
-        ob.data.edit_bones['DEF-shin.R'].tail = ob.data.edit_bones['DEF-shin.R.001'].tail
-        ob.data.edit_bones['DEF-shin.R'].parent = ob.data.edit_bones['DEF-thigh.R.001'].parent
-        ob.data.edit_bones['DEF-foot.R'].parent = ob.data.edit_bones['DEF-shin.R.001'].parent
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-thigh.R.001'])
-        ob.data.edit_bones.remove(ob.data.edit_bones['DEF-shin.R.001'])
-
-        if 'DEF-pelvis.L' in ob.data.bones :
-            ob.data.edit_bones.remove(ob.data.edit_bones['DEF-pelvis.L'])
-        if 'DEF-pelvis.R' in ob.data.bones :
-            ob.data.edit_bones.remove(ob.data.edit_bones['DEF-pelvis.R'])
-
-        if 'DEF-breast.L' in ob.data.bones :
-            ob.data.edit_bones.remove(ob.data.edit_bones['DEF-breast.L'])
-        if 'DEF-breast.R' in ob.data.bones :
-            ob.data.edit_bones.remove(ob.data.edit_bones['DEF-breast.R'])
-
+        # exiting bone manipulation
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        namelist = [("DEF-spine.006", "DEF-head"),("DEF-spine.005","DEF-neck")]
-
+        # rename certain bones (old_name, new_name)
+        namelist = [
+            ("DEF-spine.006", "DEF-head"),
+            ("DEF-spine.005", "DEF-neck")
+        ]
         for name, newname in namelist:
-            # get the pose bone with name
-            pb = ob.pose.bones.get(name)
-            # continue if no bone of that name
-            if pb is None:
-                continue
-            # rename
-            pb.name = newname
+            if name not in ob.pose.bones: continue
+            ob.pose.bones[name].name = newname
 
+        # ending of the first phase
         self.report({'INFO'}, 'Removed incompatible bones.')
 
+        # second phase
         # Merge vertex groups of deleted or deactivated bones into their original parents
         for child in ob.children:
             if child.type != 'MESH':
@@ -160,7 +159,7 @@ class UnityMecanim_Convert2Unity(bpy.types.Operator):
                 vertex_weight_edit_mod.mix_mode = 'ADD'
                 vertex_weight_edit_mod.vertex_group_a = dst
                 vertex_weight_edit_mod.vertex_group_b = src
-                
+
                 bpy.ops.object.modifier_apply(modifier='tmp_vertex_weight_edit')
                 
             print('> Finished ' + child.name)
